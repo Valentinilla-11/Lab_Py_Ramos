@@ -32,4 +32,3 @@ class Product(Base):
 
 # Creá las tablas que estén definidas en Base si todavía no existen
 Base.metadata.create_all(bind=engine)
-

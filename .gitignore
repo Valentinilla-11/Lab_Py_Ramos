@@ -9,7 +9,3 @@ __pycache__/
 .venv/
 env/s
 
-# Archivos de base de datos SQLite
-*.db
-*.sqlite
-*.sqlite3
