@@ -1,0 +1,15 @@
+# Carpeta de caché de Python
+__pycache__/
+*.pyc
+
+# Configuraciones locales de VS Code 
+.vscode/
+
+# Entornos virtuales
+.venv/
+env/s
+
+# Archivos de base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
