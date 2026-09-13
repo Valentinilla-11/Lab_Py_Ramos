@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Time, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session, relationship
 
 # La base de datos va a ser SQLite y el archivo se va a llamar database.db
 DATABASE_URL = "sqlite:///./database.db"
@@ -26,9 +26,24 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String(50), nullable=False)
     price = Column(Float, nullable=False)
 
+    sales = relationship("Sale", back_populates="product") # Primer argumento es el nombre de la clase de python 
+                                                          # "back_populates" es el nombre del atributo que declare en la otra clase
+                                                          # si es una relacion de uno a muchos, en el lado de muchos el nombre va en plural ("sales")
+
+class Sale(Base):
+    __tablename__= "sales"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    date = Column(Date, nullable=False)
+    time = Column(Time, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False) # Clave Foránea
+    total_price = Column(Float, nullable=False)
+
+    product = relationship("Product", back_populates="sales")
 
 # Creá las tablas que estén definidas en Base si todavía no existen
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(engine, Base.metadata.tables.values(), checkfirst=True)
