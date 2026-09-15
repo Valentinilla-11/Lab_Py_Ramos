@@ -56,3 +56,10 @@ class SaleUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    price: Optional[int] = None
+
+    class Config:
+        from_attributes = True

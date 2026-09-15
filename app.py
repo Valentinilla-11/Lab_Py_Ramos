@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, status
 from database import Product, Sale, db_session
-from schema import ProductCreate, ProductResponse, ProductListResponse, SingleProductResponse, SaleCreate, SaleResponse, SingleSaleResponse, SaleListResponse, SaleUpdate
+from schema import ProductCreate, ProductResponse, ProductListResponse, SingleProductResponse, SaleCreate, SaleResponse, SingleSaleResponse, SaleListResponse, SaleUpdate, ProductUpdate
 
 app = FastAPI()
 
@@ -78,9 +78,8 @@ async def get_product(product_id):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"An error ocurred while trying to get product: {e}")
 
-
 @app.put("/products/{product_id}", response_model=SingleProductResponse, status_code=status.HTTP_200_OK)
-async def update_product(product_id: int, product: ProductCreate):
+async def update_product(product_id: int, product: ProductUpdate):
     try:
         existing_product = Product.query.get(product_id)
 
@@ -90,8 +89,12 @@ async def update_product(product_id: int, product: ProductCreate):
                 detail="Product not found"
             )
 
-        existing_product.name = product.name
-        existing_product.price = product.price
+        # Solo actualizar los campos que no vienen nulos
+        if product.name is not None:
+            existing_product.name = product.name
+
+        if product.price is not None:
+            existing_product.price = product.price
 
         db_session.commit()
         db_session.refresh(existing_product)
@@ -106,9 +109,8 @@ async def update_product(product_id: int, product: ProductCreate):
         db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error ocurred while trying to update product: {e}"
+            detail=f"An error occurred while trying to update product: {e}"
         )
-
 
 @app.delete("/products/{product_id}", status_code=status.HTTP_200_OK)
 async def delete_product(product_id):
