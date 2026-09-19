@@ -1,16 +1,16 @@
 from fastapi import FastAPI, HTTPException, status
 from database import Product, Sale, db_session
-from schema import ProductCreate, ProductResponse, ProductListResponse, SingleProductResponse, SaleCreate, SaleResponse, SingleSaleResponse, SaleListResponse, SaleUpdate, ProductUpdate
+from schema import ProductCreate, ProductResponse, ProductListResponse, SingleProductResponse, SaleCreate, SaleResponse, SingleSaleResponse, SaleListResponse
 
 app = FastAPI()
 
 @app.get("/") # Decorador
-async def root():
+def root():
     return {"message": "API working"}
 
 
 @app.post("/products", response_model=SingleProductResponse, status_code=status.HTTP_201_CREATED) # "response_model" es una palabra reservada de FastAPI. 
-async def create_product(product: ProductCreate):                                           # Toma el return y le pone el filtro que le pasas despues del "="
+def create_product(product: ProductCreate):                                           # Toma el return y le pone el filtro que le pasas despues del "="
     try:
         # Verifica si hay un producto con el mismo nombre
         existing = Product.query.filter_by(name=product.name).first() 
@@ -44,7 +44,7 @@ async def create_product(product: ProductCreate):                               
 
 
 @app.get("/products", response_model=ProductListResponse, status_code=status.HTTP_200_OK)
-async def get_products():
+def get_products():
     try:
         products = Product.query.all()
         response = {"products": products}
@@ -57,7 +57,7 @@ async def get_products():
 
 
 @app.get("/products/{product_id}", response_model=SingleProductResponse, status_code=status.HTTP_200_OK)
-async def get_product(product_id):
+def get_product(product_id):
     try:
         product = Product.query.get(product_id)
 
@@ -79,7 +79,7 @@ async def get_product(product_id):
             detail=f"An error ocurred while trying to get product: {e}")
 
 @app.put("/products/{product_id}", response_model=SingleProductResponse, status_code=status.HTTP_200_OK)
-async def update_product(product_id: int, product: ProductUpdate):
+def update_product(product_id: int, product: ProductCreate):
     try:
         existing_product = Product.query.get(product_id)
 
@@ -89,12 +89,9 @@ async def update_product(product_id: int, product: ProductUpdate):
                 detail="Product not found"
             )
 
-        # Solo actualizar los campos que no vienen nulos
-        if product.name is not None:
-            existing_product.name = product.name
-
-        if product.price is not None:
-            existing_product.price = product.price
+        # Sobrescribir directamente todos los campos recibidos
+        existing_product.name = product.name
+        existing_product.price = product.price
 
         db_session.commit()
         db_session.refresh(existing_product)
@@ -113,7 +110,7 @@ async def update_product(product_id: int, product: ProductUpdate):
         )
 
 @app.delete("/products/{product_id}", status_code=status.HTTP_200_OK)
-async def delete_product(product_id):
+def delete_product(product_id):
     try:
         product = Product.query.get(product_id)
 
@@ -147,7 +144,7 @@ async def delete_product(product_id):
 
 
 @app.post("/sales", response_model=SingleSaleResponse, status_code=status.HTTP_201_CREATED)
-async def create_sale(sale_data: SaleCreate):
+def create_sale(sale_data: SaleCreate):
     try:
         product = Product.query.get(sale_data.product_id)
 
@@ -159,7 +156,6 @@ async def create_sale(sale_data: SaleCreate):
             time=sale_data.time,
             quantity=sale_data.quantity,
             product_id=sale_data.product_id,
-            total_price=(product.price * sale_data.quantity)
         )
 
         db_session.add(sale)
@@ -180,7 +176,7 @@ async def create_sale(sale_data: SaleCreate):
 
 
 @app.get("/sales", response_model=SaleListResponse, status_code=status.HTTP_200_OK)
-async def get_sales():
+def get_sales():
     try:
 
         sales = Sale.query.all()
@@ -194,7 +190,7 @@ async def get_sales():
 
         
 @app.get("/sale/{sale_id}", response_model=SingleSaleResponse, status_code=status.HTTP_200_OK)
-async def get_sale(sale_id):
+def get_sale(sale_id):
     try:
 
         sale = Sale.query.get(sale_id)
@@ -218,7 +214,7 @@ async def get_sale(sale_id):
 
 
 @app.put("/sales/{sale_id}", response_model=SingleSaleResponse, status_code=status.HTTP_200_OK)
-async def update_sale(sale_id: int, sale: SaleUpdate):
+def update_sale(sale_id: int, sale: SaleCreate):
     try: 
         existing_sale = Sale.query.get(sale_id)
 
@@ -237,11 +233,11 @@ async def update_sale(sale_id: int, sale: SaleUpdate):
                 )
             existing_sale.product_id = product.id 
 
-        if sale.quantity is not None: # Si se envió una nueva cantidad, actualizarla
-            existing_sale.quantity = sale.quantity
-
-        current_product = Product.query.get(existing_sale.product_id) # Recalcular el total_price 
-        existing_sale.total_price = (current_product.price * existing_sale.quantity)
+        # Sobrescribir todos los campos con la nueva información
+        existing_sale.date = sale.date
+        existing_sale.time = sale.time
+        existing_sale.quantity = sale.quantity
+        existing_sale.product_id = product.id
 
         db_session.commit()
         db_session.refresh(existing_sale)
@@ -260,7 +256,7 @@ async def update_sale(sale_id: int, sale: SaleUpdate):
         
 
 @app.delete("/sales/{sale_id}", status_code=status.HTTP_200_OK)
-async def delete_sale(sale_id):
+def delete_sale(sale_id: int):
     try: 
         sale = Sale.query.get(sale_id)
 

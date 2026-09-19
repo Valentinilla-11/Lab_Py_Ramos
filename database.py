@@ -41,7 +41,18 @@ class Sale(Base):
     time = Column(Time, nullable=False)
     quantity = Column(Integer, nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False) # Clave Foránea
-    total_price = Column(Float, nullable=False)
+
+
+    @property # Es un decorador que hace que una función se pueda usar como si fuera una variable o atributo simple 
+              # "mi_total = venta.total_price" y NO "mi_total = venta.total_price()" asi Pydantic puede leerlo para armar el JSON al responder
+
+    def total_price(self) -> float: # Define la función que se ejecutará en segundo plano cuando alguien consulte sale.total_price
+        if self.product and self.product.price: # Comprueba que la relación con el producto exista y que este tenga un precio cargado
+            return self.product.price * self.quantity
+        return 0.0 #Si la validación del if falla, la propiedad retorna 0.0 como valor por defecto.
+
+    # Cuando ejecutas venta1.total_price, self representa a venta1 (mira la cantidad de esa venta y el precio de su producto)
+    # self le dice a Python: "usá la cantidad y el producto de esta venta en concreto, no de otra"
 
     product = relationship("Product", back_populates="sales")
 

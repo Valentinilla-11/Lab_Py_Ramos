@@ -50,16 +50,5 @@ class SingleSaleResponse(BaseModel):
 class SaleListResponse(BaseModel):
     sales: List[SaleResponse]
 
-class SaleUpdate(BaseModel):
-    quantity: Optional[int] = None
-    product_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
 
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    price: Optional[int] = None
-
-    class Config:
-        from_attributes = True
