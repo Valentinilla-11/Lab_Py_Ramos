@@ -29,32 +29,53 @@ class Product(Base):
     name = Column(String(50), nullable=False)
     price = Column(Float, nullable=False)
 
-    sales = relationship("Sale", back_populates="product") # Primer argumento es el nombre de la clase de python 
-                                                          # "back_populates" es el nombre del atributo que declare en la otra clase
-                                                          # si es una relacion de uno a muchos, en el lado de muchos el nombre va en plural ("sales")
+    # Relación hacia la tabla intermedia
+    cart_products = relationship("CartProduct", back_populates="product")    # Primer argumento es el nombre de la clase de python 
+                                                                             # "back_populates" es el nombre del atributo que declare en la otra clase
+                                                                       
+
+class CartProduct(Base): # Tabla intermedia que representa a "carrito_producto". Mapea la relacion N:M y almacena la cantidad
+
+    __tablename__ = "cart_products"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)            # La gestiona la Base de Datos (SQL)
+    cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False) # ondelete="CASCADE" -> Si se elimina el registro padre, se borran automáticamente todos los registros hijos asociados a él
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+
+    # Relaciones de navegación
+    cart = relationship("Cart", back_populates="products")
+    product = relationship("Product", back_populates="cart_products")
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    creation_date = Column(Date, nullable=False)
+    status = Column(String(20), nullable=False, default="abierto") # 'abierto' o 'cerrado'
+
+    # Un carrito contiene muchos productos con sus cantidades                                   # La gestiona Python (SQLAlchemy)
+    products = relationship("CartProduct", back_populates="cart", cascade="all, delete-orphan") # cascade(...) -> todas las acciones como eliminar carrito se propagan a sus items
+                                                                                                # sin esto al eliminar un carrito, el producto sigue en cartProduct pero con cart_id = NULL
+    # Relación 1 a 1 con la venta (uselist=False indica que es objeto único, no lista)
+    sale = relationship("Sale", back_populates="cart", uselist=False) #Por defecto, SQLAlchemy asume relaciones de uno-a-muchos (1:N), por eso hay que aclarar cuando no es (1:1)
+
 
 class Sale(Base):
-    __tablename__= "sales"
+    __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     date = Column(Date, nullable=False)
     time = Column(Time, nullable=False)
-    quantity = Column(Integer, nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False) # Clave Foránea
+    # Campo para almacenar el precio histórico congelado al momento de crear/asignar
+    total_price = Column(Float, nullable=False, default=0.0)
+    
+    # Clave foránea única hacia la tabla carts (Relación 1 a 1)
+    cart_id = Column(Integer, ForeignKey("carts.id"), unique=True, nullable=False)
 
-
-    @property # Es un decorador que hace que una función se pueda usar como si fuera una variable o atributo simple 
-              # "mi_total = venta.total_price" y NO "mi_total = venta.total_price()" asi Pydantic puede leerlo para armar el JSON al responder
-
-    def total_price(self) -> float: # Define la función que se ejecutará en segundo plano cuando alguien consulte sale.total_price
-        if self.product and self.product.price: # Comprueba que la relación con el producto exista y que este tenga un precio cargado
-            return self.product.price * self.quantity
-        return 0.0 #Si la validación del if falla, la propiedad retorna 0.0 como valor por defecto.
-
-    # Cuando ejecutas venta1.total_price, self representa a venta1 (mira la cantidad de esa venta y el precio de su producto)
-    # self le dice a Python: "usá la cantidad y el producto de esta venta en concreto, no de otra"
-
-    product = relationship("Product", back_populates="sales")
+    # Relación inversa hacia el carrito
+    cart = relationship("Cart", back_populates="sale")
 
 # Creá las tablas que estén definidas en Base si todavía no existen
 Base.metadata.create_all(engine, Base.metadata.tables.values(), checkfirst=True)
