@@ -161,14 +161,26 @@ def delete_product(product_id):
 # Cart 
 # ==========================================================
 
-#! FALTAN MAS ENDPOINTS
-
 @app.post("/carts/{cart_id}/products", response_model=SingleCartResponse, status_code=status.HTTP_200_OK)
 def add_product_to_cart(cart_id: int, item_data: CartProductAdd):
     try:
         cart = Cart.query.get(cart_id)
         if not cart:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found")
+
+        # Regla de negocio: No se pueden agregar productos a un carrito cerrado
+        if cart.status == "cerrado":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot add products to a closed cart."
+            )
+
+        # Regla de negocio: La cantidad recibida debe ser mayor a 0
+        if item_data.quantity <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Product quantity must be greater than 0."
+            )
 
         product = Product.query.get(item_data.product_id)
         if not product:
@@ -207,6 +219,20 @@ def remove_product_from_cart(cart_id: int, product_id: int):
         if not cart:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found")
 
+        # Regla de negocio: No se pueden eliminar productos de un carrito cerrado
+        if cart.status == "cerrado":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot remove products from a closed cart."
+            )
+
+
+        # Verificar que el producto exista globalmente en la base de datos
+        product = Product.query.get(product_id)
+        if not product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+        # Verificar que el producto se encuentre dentro del carrito
         item = CartProduct.query.filter_by(cart_id=cart_id, product_id=product_id).first()
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found in this cart")
